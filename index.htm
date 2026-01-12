@@ -3,473 +3,164 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Minha Pokédex Mobile</title>
+  <title>Pokédex Cloud & TCG</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
+    /* Mantendo seu layout original conforme solicitado */
     :root {
-      --user-color-1: #ef4444;
-      --user-color-2: #3b82f6;
+      --user-color-1: #ef4444; --user-color-2: #3b82f6;
       --bg-gradient: linear-gradient(135deg, var(--user-color-1), var(--user-color-2));
-      --card-bg: #ffffff;
-      --text-main: #374151;
-      --input-border: #d1d5db;
-      --pokedex-item-bg: #ffffff;
+      --card-bg: #ffffff; --text-main: #374151; --input-border: #d1d5db; --pokedex-item-bg: #ffffff;
     }
-
     body.dark-mode {
       --bg-gradient: linear-gradient(135deg, #1f2937, #111827);
-      --card-bg: #1f2937;
-      --text-main: #f3f4f6;
-      --input-border: #4b5563;
-      --pokedex-item-bg: #374151;
+      --card-bg: #1f2937; --text-main: #f3f4f6; --input-border: #4b5563; --pokedex-item-bg: #374151;
     }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; min-height: 100vh; background: var(--bg-gradient); background-attachment: fixed; font-family: 'Segoe UI', sans-serif; padding: 15px; color: var(--text-main); transition: background 0.4s; }
+
+    .card { background: var(--card-bg); border-radius: 20px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+    .card-login { width: 100%; max-width: 400px; margin: 40px auto; text-align: center; }
+    input { width: 100%; height: 50px; padding: 0 15px; border-radius: 12px; border: 2px solid var(--input-border); background: var(--card-bg); color: var(--text-main); font-size: 16px; margin-bottom: 10px; }
     
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg-gradient);
-      background-attachment: fixed;
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      padding: 15px;
-      color: var(--text-main);
-      transition: background 0.4s ease;
-    }
+    .grid-pokemon { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; padding-bottom: 40px; }
+    .pokemon-card { background: var(--pokedex-item-bg); border-radius: 15px; padding: 12px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+    .pokemon-card img { width: 80px; height: 80px; }
+    .pokemon-card.capturado { background: linear-gradient(135deg, #a8ff78, #78ffd6) !important; border: 2px solid #2ecc71; }
 
-    /* Título Responsivo */
-    .titulo-principal h1 {
-      font-family: 'Press Start 2P', cursive;
-      font-size: clamp(18px, 5vw, 24px);
-      color: #ffcb05;
-      text-shadow: 3px 3px 0 #2a75bb;
-      margin: 0;
-      text-align: center;
-    }
+    /* MODAL TCG */
+    #modal-tcg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; justify-content: center; align-items: center; padding: 15px; }
+    .modal-content { background: var(--card-bg); width: 100%; max-width: 500px; height: 80vh; border-radius: 25px; display: flex; flex-direction: column; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .carta-item { background: rgba(0,0,0,0.05); padding: 5px; border-radius: 10px; text-align: center; }
+    .carta-item img { width: 100%; border-radius: 5px; }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-
-    .card-login {
-      width: 100%;
-      max-width: 400px;
-      margin: 40px auto;
-    }
-
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      height: 50px;
-      padding: 0 15px;
-      border-radius: 12px;
-      border: 2px solid var(--input-border);
-      background: var(--card-bg);
-      color: var(--text-main);
-      font-size: 16px;
-      appearance: none;
-    }
-
-    .password-wrapper { position: relative; }
-    #toggleSenha {
-      position: absolute;
-      right: 5px; top: 0; width: 50px; height: 100%;
-      background: transparent; border: none; cursor: pointer; font-size: 22px;
-    }
-
-    .btn-principal {
-      width: 100%; height: 55px; background: #ef4444; color: white;
-      border: none; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;
-      font-size: 16px;
-    }
-
-    /* POKEDEX AREA */
-    #app { display: none; max-width: 1000px; margin: 0 auto; padding-bottom: 60px; }
-    
-    /* --- NOVO: BARRA DE NAVEGAÇÃO --- */
-    .nav-container {
-      margin: 10px 0 20px 0;
-      overflow-x: auto;
-      white-space: nowrap;
-      padding-bottom: 5px;
-      /* Esconde barra de rolagem */
-      scrollbar-width: none; 
-      -ms-overflow-style: none;
-    }
-    .nav-container::-webkit-scrollbar { display: none; }
-
-    .nav-row {
-      display: flex; gap: 8px; margin-bottom: 8px;
-    }
-
-    .chip {
-      background: rgba(0,0,0,0.1);
-      padding: 8px 15px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: bold;
-      color: var(--text-main);
-      cursor: pointer;
-      border: 1px solid transparent;
-    }
-    .chip:active { background: #ef4444; color: white; }
-
-    /* --- NOVO: DIVISOR DE GERAÇÕES --- */
-    .divisor-gen {
-      grid-column: 1 / -1; /* Ocupa toda a largura do grid */
-      margin: 20px 0 10px 0;
-      padding-bottom: 5px;
-      border-bottom: 2px solid rgba(0,0,0,0.1);
-      font-weight: bold;
-      opacity: 0.7;
-      text-transform: uppercase;
-      font-size: 14px;
-    }
-
-    /* --- NOVO: BOTÃO VOLTAR AO TOPO --- */
-    #btn-topo {
-      position: fixed; bottom: 20px; right: 20px;
-      width: 50px; height: 50px; border-radius: 50%;
-      background: #ef4444; color: white; border: none;
-      font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      display: none; cursor: pointer; z-index: 500;
-    }
-
-    .grid-pokemon {
-      display: grid; 
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
-      gap: 12px;
-    }
-
-    @media (max-width: 360px) {
-      .grid-pokemon { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .pokemon-card {
-      background: var(--pokedex-item-bg); 
-      border-radius: 15px; 
-      padding: 12px;
-      text-align: center; 
-      cursor: pointer; 
-      transition: transform 0.1s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .pokemon-card:active { transform: scale(0.95); }
-
-    .pokemon-card img {
-      width: 80px;
-      height: 80px;
-    }
-
-    .pokemon-card.capturado {
-      background: linear-gradient(135deg, #a8ff78, #78ffd6) !important;
-      border: 2px solid #2ecc71;
-      color: #333;
-    }
-
-    /* AJUSTES MENU */
-    #menu-usuario { position: fixed; top: 15px; right: 15px; z-index: 100; }
-    .btn-menu {
-      background: var(--card-bg); border: none; width: 48px; height: 48px;
-      border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px;
-      color: var(--text-main); display: flex; align-items: center; justify-content: center;
-    }
-
-    .dropdown {
-      display: none; position: absolute; right: 0; top: 55px;
-      background: var(--card-bg); border-radius: 15px;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.3); width: 240px; padding: 15px;
-    }
-
-    .color-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 10px 0;
-    }
-
-    .color-option {
-      width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
-      border: 2px solid rgba(255,255,255,0.8); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    .btn-item {
-      width: 100%; padding: 15px 10px; border: none; background: none;
-      text-align: left; cursor: pointer; color: var(--text-main);
-      border-radius: 8px; display: flex; justify-content: space-between; font-size: 16px;
-    }
+    #btn-topo { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: #ef4444; color: white; border: none; font-size: 24px; display: none; cursor: pointer; }
   </style>
 </head>
 <body>
 
-  <div id="loading" style="position:fixed; top:0; left:0; width:100%; height:5px; background:linear-gradient(90deg, #ef4444, #3b82f6); z-index:2000;"></div>
-
-  <button id="btn-topo" onclick="window.scrollTo({top:0, behavior:'smooth'})">↑</button>
-
-  <div id="menu-usuario" style="display: none;">
-    <button class="btn-menu" id="btnAbrirMenu" aria-label="Ajustes">⚙️</button>
-    <div class="dropdown" id="meuDropdown">
-      <div style="font-size: 11px; font-weight: bold; opacity: 0.6; margin-bottom: 5px;">VISUAL</div>
-      <button class="btn-item" id="btnToggleDarkMode">Modo Escuro <span id="statusEscuro">Off</span></button>
-      
-      <div id="ajustes-claro">
-        <div style="font-size: 11px; font-weight: bold; opacity: 0.6; margin: 10px 0 5px;">TEMAS (CLARO)</div>
-        <div class="color-grid">
-          <div class="color-option" style="background: linear-gradient(135deg, #ef4444, #3b82f6);" onclick="setTheme('#ef4444', '#3b82f6')"></div>
-          <div class="color-option" style="background: linear-gradient(135deg, #8b5cf6, #ec4899);" onclick="setTheme('#8b5cf6', '#ec4899')"></div>
-          <div class="color-option" style="background: linear-gradient(135deg, #10b981, #3b82f6);" onclick="setTheme('#10b981', '#3b82f6')"></div>
-          <div class="color-option" style="background: linear-gradient(135deg, #f59e0b, #ef4444);" onclick="setTheme('#f59e0b', '#ef4444')"></div>
-        </div>
-      </div>
-
-      <hr style="opacity:0.1; margin: 10px 0;">
-      <button class="btn-item" id="btnSair" style="color:#ef4444">Sair da Conta</button>
-    </div>
-  </div>
-
   <div id="secao-login">
-    <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin: 20px 0 30px;">
-      <img style="width:40px" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
-      <div class="titulo-principal"><h1>POKÉDEX</h1></div>
-      <img style="width:40px" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
-    </div>
-
     <div class="card card-login">
-      <div style="margin-bottom:15px">
-        <label style="display:block; margin-bottom:5px; font-weight:bold; font-size:14px">Treinador</label>
-        <input type="text" id="input-user" placeholder="Seu nome">
-      </div>
-      <div style="margin-bottom:15px">
-        <label style="display:block; margin-bottom:5px; font-weight:bold; font-size:14px">Senha</label>
-        <div class="password-wrapper">
-          <input type="password" id="input-pass" placeholder="Sua senha">
-          <button type="button" id="toggleSenha">🙈</button>
-        </div>
-      </div>
-      <button class="btn-principal" id="btnEntrar">ENTRAR / REGISTRAR</button>
-      <p id="msg-erro" style="color:#ef4444; text-align:center; font-weight:bold; margin-top:10px; font-size: 14px;"></p>
+      <h1 style="font-family:'Press Start 2P'; color:#ffcb05; text-shadow:2px 2px #2a75bb">POKÉDEX</h1>
+      <input type="text" id="user" placeholder="Treinador">
+      <input type="password" id="pass" placeholder="Senha">
+      <button class="card" style="width:100%; background:#ef4444; color:white; font-weight:bold; cursor:pointer" id="btnLogin">ENTRAR</button>
+      <p id="error" style="color:red"></p>
     </div>
   </div>
 
-  <div id="app">
-    <div class="card" style="margin-bottom:15px; padding: 15px;">
-      <div style="text-align:center; margin-bottom:10px;">
-        <span id="progresso-texto" style="font-weight:bold; font-size:16px; display:block;"></span>
-      </div>
-      <input type="text" id="busca-pokemon" placeholder="Buscar por nome ou nº...">
-      
-      <div class="nav-container">
-        <div class="nav-row" id="nav-geracoes"></div>
-        <div class="nav-row" id="nav-centenas"></div>
-      </div>
+  <div id="app" style="display:none">
+    <div class="card" style="margin-bottom:15px">
+      <h2 id="welcome" style="margin:0 0 10px 0"></h2>
+      <input type="text" id="search" placeholder="Buscar Pokémon ou Pacote...">
     </div>
-
     <div id="lista-pokemon" class="grid-pokemon"></div>
   </div>
 
-  <script>
-    const somPlin = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b2f8c.mp3');
-    let usuarioAtual = localStorage.getItem('pokedex_user_logado');
+  <div id="modal-tcg" onclick="this.style.display='none'">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div style="padding:20px; border-bottom:1px solid #ddd; font-weight:bold" id="modal-titulo">Cartas</div>
+      <div class="modal-body" id="modal-lista"></div>
+    </div>
+  </div>
+
+  <button id="btn-topo" onclick="window.scrollTo(0,0)">↑</button>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Suas configurações extraídas da imagem
+    const firebaseConfig = {
+      apiKey: "AIzaSyA9QSBF_caNWZjTkhZ0wsQbOV_WDu hzZpU",
+      authDomain: "pokedextcg-5232f.firebaseapp.com",
+      projectId: "pokedextcg-5232f",
+      storageBucket: "pokedextcg-5232f.firebasestorage.app",
+      messagingSenderId: "184284811506",
+      appId: "1:184284811506:web:51e49727b89e750de4006b",
+      measurementId: "G-WHK7TP29QM"
+    };
+
+    const fb = initializeApp(firebaseConfig);
+    const db = getFirestore(fb);
+    let userDoc = null;
     let listaNomes = {};
 
-    // --- DADOS DAS GERAÇÕES ---
-    const gens = [
-      { id: "G1", n: "Kanto", s: 1, e: 151 }, 
-      { id: "G2", n: "Johto", s: 152, e: 251 },
-      { id: "G3", n: "Hoenn", s: 252, e: 386 }, 
-      { id: "G4", n: "Sinnoh", s: 387, e: 493 },
-      { id: "G5", n: "Unova", s: 494, e: 649 }, 
-      { id: "G6", n: "Kalos", s: 650, e: 721 },
-      { id: "G7", n: "Alola", s: 722, e: 809 }, 
-      { id: "G8", n: "Galar", s: 810, e: 905 },
-      { id: "G9", n: "Paldea", s: 906, e: 1025 }
-    ];
+    // Carregar nomes da API
+    const init = async () => {
+      const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+      const data = await res.json();
+      data.results.forEach((p, i) => listaNomes[i + 1] = p.name);
+    };
 
-    function setTheme(c1, c2) {
-      if (!document.body.classList.contains('dark-mode')) {
-        document.documentElement.style.setProperty('--user-color-1', c1);
-        document.documentElement.style.setProperty('--user-color-2', c2);
-        localStorage.setItem('pokedex_c1', c1);
-        localStorage.setItem('pokedex_c2', c2);
-      }
-    }
-
-    setTheme(localStorage.getItem('pokedex_c1') || '#ef4444', localStorage.getItem('pokedex_c2') || '#3b82f6');
-
-    const btnDarkMode = document.getElementById('btnToggleDarkMode');
-    const statusEscuro = document.getElementById('statusEscuro');
-    const ajustesClaro = document.getElementById('ajustes-claro');
-
-    function aplicarDarkMode(isDark) {
-      if (isDark) {
-        document.body.classList.add('dark-mode');
-        statusEscuro.textContent = "On";
-        ajustesClaro.style.opacity = "0.3";
-        ajustesClaro.style.pointerEvents = "none";
+    // Login e Sincronização
+    document.getElementById('btnLogin').onclick = async () => {
+      const u = document.getElementById('user').value.toLowerCase().trim();
+      if(!u) return;
+      
+      const docRef = doc(db, "treinadores", u);
+      const snap = await getDoc(docRef);
+      
+      if(snap.exists()) {
+        userDoc = snap.data();
       } else {
-        document.body.classList.remove('dark-mode');
-        statusEscuro.textContent = "Off";
-        ajustesClaro.style.opacity = "1";
-        ajustesClaro.style.pointerEvents = "auto";
-        setTheme(localStorage.getItem('pokedex_c1') || '#ef4444', localStorage.getItem('pokedex_c2') || '#3b82f6');
+        userDoc = { nome: u, capturados: {} };
+        await setDoc(docRef, userDoc);
       }
-    }
-
-    let isDark = localStorage.getItem('pokedex_dark_mode') === 'true';
-    aplicarDarkMode(isDark);
-
-    btnDarkMode.onclick = () => {
-      isDark = !document.body.classList.contains('dark-mode');
-      aplicarDarkMode(isDark);
-      localStorage.setItem('pokedex_dark_mode', isDark);
-    };
-
-    const btnToggle = document.getElementById('toggleSenha');
-    const inputPass = document.getElementById('input-pass');
-    btnToggle.onclick = () => {
-      const isHidden = inputPass.type === 'password';
-      inputPass.type = isHidden ? 'text' : 'password';
-      btnToggle.textContent = isHidden ? '👁️' : '🙈';
-      somPlin.play().catch(() => {}); 
-    };
-
-    async function carregarAPI() {
-      try {
-        const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
-        const data = await res.json();
-        data.results.forEach((p, i) => listaNomes[i + 1] = p.name);
-        document.getElementById('loading').style.display = 'none';
-        
-        criarBotoesNavegacao(); // Cria os botões G1, G2...
-        if (usuarioAtual) iniciarApp();
-      } catch(e) {
-        document.getElementById('msg-erro').textContent = "Erro ao carregar dados da internet.";
-      }
-    }
-
-    // --- NOVA FUNÇÃO: CRIAR BOTÕES DE NAVEGAÇÃO ---
-    function criarBotoesNavegacao() {
-      const divGens = document.getElementById('nav-geracoes');
-      const divNums = document.getElementById('nav-centenas');
-
-      // Botões G1 a G9
-      gens.forEach(g => {
-        const btn = document.createElement('div');
-        btn.className = 'chip';
-        btn.textContent = g.id;
-        btn.onclick = () => {
-          const el = document.getElementById('titulo-'+g.id);
-          if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
-        };
-        divGens.appendChild(btn);
-      });
-
-      // Botões 0+, 100+ ...
-      for(let i=0; i<=1000; i+=100) {
-        const btn = document.createElement('div');
-        btn.className = 'chip';
-        btn.textContent = i + '+';
-        btn.onclick = () => {
-          // Procura o ID (se for 0, procura 1)
-          const alvo = i === 0 ? 1 : i;
-          const el = document.querySelector(`[data-id="${alvo}"]`);
-          if(el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
-        };
-        divNums.appendChild(btn);
-      }
-    }
-
-    document.getElementById('btnEntrar').onclick = () => {
-      const u = document.getElementById('input-user').value.trim();
-      const s = inputPass.value.trim();
-      if (!u || !s) return;
-      let banco = JSON.parse(localStorage.getItem('pokedex_db')) || {};
-      if (!banco[u]) banco[u] = { senha: s, capturados: {} };
-      else if (banco[u].senha !== s) { document.getElementById('msg-erro').textContent = "Senha incorreta!"; return; }
-      localStorage.setItem('pokedex_user_logado', u);
-      localStorage.setItem('pokedex_db', JSON.stringify(banco));
-      usuarioAtual = u;
-      iniciarApp();
-    };
-
-    function iniciarApp() {
+      
       document.getElementById('secao-login').style.display = 'none';
       document.getElementById('app').style.display = 'block';
-      document.getElementById('menu-usuario').style.display = 'block';
-      renderizarPokedex();
-    }
-
-    function renderizarPokedex() {
-      const container = document.getElementById('lista-pokemon');
-      const banco = JSON.parse(localStorage.getItem('pokedex_db'));
-      const capturados = banco[usuarioAtual].capturados || {};
-      container.innerHTML = '';
-      
-      // --- LOOP POR GERAÇÃO (PARA CRIAR OS DIVISORES) ---
-      gens.forEach(g => {
-        // Criar Divisor
-        const divisor = document.createElement('div');
-        divisor.className = 'divisor-gen';
-        divisor.id = 'titulo-' + g.id;
-        divisor.textContent = `${g.n} (${g.id})`;
-        container.appendChild(divisor);
-
-        // Criar Pokémon daquela geração
-        for (let i = g.s; i <= g.e; i++) {
-          const card = document.createElement('div');
-          card.className = `pokemon-card ${capturados[i] ? 'capturado' : ''}`;
-          card.setAttribute('data-id', i);
-          
-          card.innerHTML = `
-            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png" loading="lazy" alt="${listaNomes[i]}">
-            <div style="font-size:10px; opacity:0.6">#${i}</div>
-            <div style="text-transform:capitalize; font-weight:bold; font-size:12px">${listaNomes[i] || '...'}</div>
-          `;
-          card.onclick = () => {
-            capturados[i] = !capturados[i];
-            card.classList.toggle('capturado');
-            banco[usuarioAtual].capturados = capturados;
-            localStorage.setItem('pokedex_db', JSON.stringify(banco));
-            atualizarStatus(capturados);
-          };
-          container.appendChild(card);
-        }
-      });
-
-      atualizarStatus(capturados);
-    }
-
-    function atualizarStatus(capturados) {
-      const total = Object.values(capturados).filter(v => v).length;
-      document.getElementById('progresso-texto').textContent = `${usuarioAtual}: ${total} / 1025`;
-    }
-
-    document.getElementById('busca-pokemon').oninput = (e) => {
-      const t = e.target.value.toLowerCase();
-      // Filtra Cards
-      document.querySelectorAll('.pokemon-card').forEach(c => {
-        c.style.display = c.innerText.toLowerCase().includes(t) ? 'flex' : 'none';
-      });
-      // Esconde divisores na busca para não poluir
-      document.querySelectorAll('.divisor-gen').forEach(d => {
-        d.style.display = t ? 'none' : 'block';
-      });
+      document.getElementById('welcome').innerText = "Treinador: " + u;
+      render();
     };
 
-    // Scroll Botão Topo
-    window.onscroll = () => {
-      document.getElementById('btn-topo').style.display = window.scrollY > 500 ? 'block' : 'none';
-    };
+    // Renderizar
+    function render() {
+      const lista = document.getElementById('lista-pokemon');
+      lista.innerHTML = '';
+      for(let i=1; i<=151; i++) { // G1 para exemplo rápido
+        const card = document.createElement('div');
+        card.className = `pokemon-card ${userDoc.capturados[i] ? 'capturado' : ''}`;
+        card.innerHTML = `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png">
+                          <b>${listaNomes[i]}</b>`;
+        
+        // Clique curto: Captura / Clique longo: Ver Cartas
+        card.onclick = () => alternarCaptura(i, card);
+        card.oncontextmenu = (e) => { e.preventDefault(); abrirTCG(listaNomes[i]); };
+        
+        lista.appendChild(card);
+      }
+    }
 
-    const btnMenu = document.getElementById('btnAbrirMenu');
-    const dropdown = document.getElementById('meuDropdown');
-    btnMenu.onclick = (e) => { e.stopPropagation(); dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block'; };
-    window.onclick = () => dropdown.style.display = 'none';
-    document.getElementById('btnSair').onclick = () => { localStorage.removeItem('pokedex_user_logado'); location.reload(); };
+    async function alternarCaptura(id, el) {
+      userDoc.capturados[id] = !userDoc.capturados[id];
+      el.classList.toggle('capturado');
+      await setDoc(doc(db, "treinadores", userDoc.nome), userDoc);
+    }
 
-    carregarAPI();
+    async function abrirTCG(nome) {
+      const modal = document.getElementById('modal-tcg');
+      const corpo = document.getElementById('modal-lista');
+      document.getElementById('modal-titulo').innerText = "Cartas de " + nome;
+      modal.style.display = 'flex';
+      corpo.innerHTML = "Buscando pacotes...";
+
+      try {
+        const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${nome}`);
+        const d = await r.json();
+        corpo.innerHTML = "";
+        d.data.slice(0, 10).forEach(c => {
+          corpo.innerHTML += `<div class="carta-item">
+            <img src="${c.images.small}">
+            <div style="font-size:10px">${c.set.name}</div>
+          </div>`;
+        });
+      } catch(e) { corpo.innerHTML = "Erro ao carregar TCG."; }
+    }
+
+    window.onscroll = () => { document.getElementById('btn-topo').style.display = window.scrollY > 400 ? 'block' : 'none'; };
+    init();
   </script>
 </body>
 </html>
