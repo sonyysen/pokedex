@@ -86,16 +86,63 @@
     }
 
     /* POKEDEX AREA */
-    #app { display: none; max-width: 1000px; margin: 0 auto; }
+    #app { display: none; max-width: 1000px; margin: 0 auto; padding-bottom: 60px; }
     
+    /* --- NOVO: BARRA DE NAVEGAÇÃO --- */
+    .nav-container {
+      margin: 10px 0 20px 0;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 5px;
+      /* Esconde barra de rolagem */
+      scrollbar-width: none; 
+      -ms-overflow-style: none;
+    }
+    .nav-container::-webkit-scrollbar { display: none; }
+
+    .nav-row {
+      display: flex; gap: 8px; margin-bottom: 8px;
+    }
+
+    .chip {
+      background: rgba(0,0,0,0.1);
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--text-main);
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .chip:active { background: #ef4444; color: white; }
+
+    /* --- NOVO: DIVISOR DE GERAÇÕES --- */
+    .divisor-gen {
+      grid-column: 1 / -1; /* Ocupa toda a largura do grid */
+      margin: 20px 0 10px 0;
+      padding-bottom: 5px;
+      border-bottom: 2px solid rgba(0,0,0,0.1);
+      font-weight: bold;
+      opacity: 0.7;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+
+    /* --- NOVO: BOTÃO VOLTAR AO TOPO --- */
+    #btn-topo {
+      position: fixed; bottom: 20px; right: 20px;
+      width: 50px; height: 50px; border-radius: 50%;
+      background: #ef4444; color: white; border: none;
+      font-size: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      display: none; cursor: pointer; z-index: 500;
+    }
+
     .grid-pokemon {
       display: grid; 
       grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); 
       gap: 12px;
-      padding-bottom: 40px;
     }
 
-    /* Ajuste para telas muito pequenas (celulares antigos) */
     @media (max-width: 360px) {
       .grid-pokemon { grid-template-columns: repeat(2, 1fr); }
     }
@@ -157,6 +204,10 @@
 </head>
 <body>
 
+  <div id="loading" style="position:fixed; top:0; left:0; width:100%; height:5px; background:linear-gradient(90deg, #ef4444, #3b82f6); z-index:2000;"></div>
+
+  <button id="btn-topo" onclick="window.scrollTo({top:0, behavior:'smooth'})">↑</button>
+
   <div id="menu-usuario" style="display: none;">
     <button class="btn-menu" id="btnAbrirMenu" aria-label="Ajustes">⚙️</button>
     <div class="dropdown" id="meuDropdown">
@@ -203,10 +254,18 @@
   </div>
 
   <div id="app">
-    <div class="card" style="margin-bottom:15px; text-align:center; padding: 15px;">
-      <span id="progresso-texto" style="font-weight:bold; font-size:16px; display:block; margin-bottom:10px"></span>
+    <div class="card" style="margin-bottom:15px; padding: 15px;">
+      <div style="text-align:center; margin-bottom:10px;">
+        <span id="progresso-texto" style="font-weight:bold; font-size:16px; display:block;"></span>
+      </div>
       <input type="text" id="busca-pokemon" placeholder="Buscar por nome ou nº...">
+      
+      <div class="nav-container">
+        <div class="nav-row" id="nav-geracoes"></div>
+        <div class="nav-row" id="nav-centenas"></div>
+      </div>
     </div>
+
     <div id="lista-pokemon" class="grid-pokemon"></div>
   </div>
 
@@ -214,6 +273,19 @@
     const somPlin = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_115b9b2f8c.mp3');
     let usuarioAtual = localStorage.getItem('pokedex_user_logado');
     let listaNomes = {};
+
+    // --- DADOS DAS GERAÇÕES ---
+    const gens = [
+      { id: "G1", n: "Kanto", s: 1, e: 151 }, 
+      { id: "G2", n: "Johto", s: 152, e: 251 },
+      { id: "G3", n: "Hoenn", s: 252, e: 386 }, 
+      { id: "G4", n: "Sinnoh", s: 387, e: 493 },
+      { id: "G5", n: "Unova", s: 494, e: 649 }, 
+      { id: "G6", n: "Kalos", s: 650, e: 721 },
+      { id: "G7", n: "Alola", s: 722, e: 809 }, 
+      { id: "G8", n: "Galar", s: 810, e: 905 },
+      { id: "G9", n: "Paldea", s: 906, e: 1025 }
+    ];
 
     function setTheme(c1, c2) {
       if (!document.body.classList.contains('dark-mode')) {
@@ -260,7 +332,7 @@
       const isHidden = inputPass.type === 'password';
       inputPass.type = isHidden ? 'text' : 'password';
       btnToggle.textContent = isHidden ? '👁️' : '🙈';
-      somPlin.play().catch(() => {}); // catch para evitar erro em alguns navegadores mobile
+      somPlin.play().catch(() => {}); 
     };
 
     async function carregarAPI() {
@@ -268,9 +340,44 @@
         const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
         const data = await res.json();
         data.results.forEach((p, i) => listaNomes[i + 1] = p.name);
+        document.getElementById('loading').style.display = 'none';
+        
+        criarBotoesNavegacao(); // Cria os botões G1, G2...
         if (usuarioAtual) iniciarApp();
       } catch(e) {
         document.getElementById('msg-erro').textContent = "Erro ao carregar dados da internet.";
+      }
+    }
+
+    // --- NOVA FUNÇÃO: CRIAR BOTÕES DE NAVEGAÇÃO ---
+    function criarBotoesNavegacao() {
+      const divGens = document.getElementById('nav-geracoes');
+      const divNums = document.getElementById('nav-centenas');
+
+      // Botões G1 a G9
+      gens.forEach(g => {
+        const btn = document.createElement('div');
+        btn.className = 'chip';
+        btn.textContent = g.id;
+        btn.onclick = () => {
+          const el = document.getElementById('titulo-'+g.id);
+          if(el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+        };
+        divGens.appendChild(btn);
+      });
+
+      // Botões 0+, 100+ ...
+      for(let i=0; i<=1000; i+=100) {
+        const btn = document.createElement('div');
+        btn.className = 'chip';
+        btn.textContent = i + '+';
+        btn.onclick = () => {
+          // Procura o ID (se for 0, procura 1)
+          const alvo = i === 0 ? 1 : i;
+          const el = document.querySelector(`[data-id="${alvo}"]`);
+          if(el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
+        };
+        divNums.appendChild(btn);
       }
     }
 
@@ -299,23 +406,38 @@
       const banco = JSON.parse(localStorage.getItem('pokedex_db'));
       const capturados = banco[usuarioAtual].capturados || {};
       container.innerHTML = '';
-      for (let i = 1; i <= 1025; i++) {
-        const card = document.createElement('div');
-        card.className = `pokemon-card ${capturados[i] ? 'capturado' : ''}`;
-        card.innerHTML = `
-          <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png" loading="lazy" alt="${listaNomes[i]}">
-          <div style="font-size:10px; opacity:0.6">#${i}</div>
-          <div style="text-transform:capitalize; font-weight:bold; font-size:12px">${listaNomes[i] || '...'}</div>
-        `;
-        card.onclick = () => {
-          capturados[i] = !capturados[i];
-          card.classList.toggle('capturado');
-          banco[usuarioAtual].capturados = capturados;
-          localStorage.setItem('pokedex_db', JSON.stringify(banco));
-          atualizarStatus(capturados);
-        };
-        container.appendChild(card);
-      }
+      
+      // --- LOOP POR GERAÇÃO (PARA CRIAR OS DIVISORES) ---
+      gens.forEach(g => {
+        // Criar Divisor
+        const divisor = document.createElement('div');
+        divisor.className = 'divisor-gen';
+        divisor.id = 'titulo-' + g.id;
+        divisor.textContent = `${g.n} (${g.id})`;
+        container.appendChild(divisor);
+
+        // Criar Pokémon daquela geração
+        for (let i = g.s; i <= g.e; i++) {
+          const card = document.createElement('div');
+          card.className = `pokemon-card ${capturados[i] ? 'capturado' : ''}`;
+          card.setAttribute('data-id', i);
+          
+          card.innerHTML = `
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png" loading="lazy" alt="${listaNomes[i]}">
+            <div style="font-size:10px; opacity:0.6">#${i}</div>
+            <div style="text-transform:capitalize; font-weight:bold; font-size:12px">${listaNomes[i] || '...'}</div>
+          `;
+          card.onclick = () => {
+            capturados[i] = !capturados[i];
+            card.classList.toggle('capturado');
+            banco[usuarioAtual].capturados = capturados;
+            localStorage.setItem('pokedex_db', JSON.stringify(banco));
+            atualizarStatus(capturados);
+          };
+          container.appendChild(card);
+        }
+      });
+
       atualizarStatus(capturados);
     }
 
@@ -326,9 +448,19 @@
 
     document.getElementById('busca-pokemon').oninput = (e) => {
       const t = e.target.value.toLowerCase();
+      // Filtra Cards
       document.querySelectorAll('.pokemon-card').forEach(c => {
         c.style.display = c.innerText.toLowerCase().includes(t) ? 'flex' : 'none';
       });
+      // Esconde divisores na busca para não poluir
+      document.querySelectorAll('.divisor-gen').forEach(d => {
+        d.style.display = t ? 'none' : 'block';
+      });
+    };
+
+    // Scroll Botão Topo
+    window.onscroll = () => {
+      document.getElementById('btn-topo').style.display = window.scrollY > 500 ? 'block' : 'none';
     };
 
     const btnMenu = document.getElementById('btnAbrirMenu');
